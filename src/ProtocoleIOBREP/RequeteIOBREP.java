@@ -49,7 +49,10 @@ public class RequeteIOBREP implements Requete, Serializable {
     public static int LOGIN = 1;
     public static int  GET_CONTAINERS = 2;
     public static int  HANDLE_CONTAINER_OUT = 3;
-     public static int END_CONTAINER_OUT =4;
+    public static int END_CONTAINER_OUT =4;
+    public static int BOAT_ARRIVED = 5;
+    public static int HANDLE_CONTAINER_IN = 6;
+    public static int END_CONTAINER_IN  = 7;
     //FROM REPONSE   
     private int type;
     private String chargeUtile;
@@ -315,6 +318,19 @@ public class RequeteIOBREP implements Requete, Serializable {
                     rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"Update non faite, container non trouve" );
                 } 
             }
+            else if(req.getType() == RequeteIOBREP.BOAT_ARRIVED)
+            {
+
+            }   
+            else if(req.getType() == RequeteIOBREP.HANDLE_CONTAINER_IN)
+            {
+
+            }
+            else if(req.getType() == RequeteIOBREP.END_CONTAINER_IN)
+            {
+
+            }
+            
             try {
                 oos = new ObjectOutputStream(sock.getOutputStream());
                 oos.writeObject(rep);
