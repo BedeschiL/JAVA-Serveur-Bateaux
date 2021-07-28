@@ -34,10 +34,12 @@ public class ReponseIOBREP implements Reponse, Serializable {
     public static int INVALID_FORMAT = 888;
     public static int UNKNOWN_TYPE = 999;
     public static int SERVER_FAIL = -1;
-     public static int GET_CONTAINER = 2;
-       public static int  HANDLE_CONTAINER_OUT = 3;
-      public static int END_CONTAINER_OUT =4;
-    
+    public static int GET_CONTAINER = 2;
+    public static int  HANDLE_CONTAINER_OUT = 3;
+    public static int END_CONTAINER_OUT =4;
+     public static int BOAT_ARRIVED = 5;
+    public static int HANDLE_CONTAINER_IN = 6;
+    public static int END_CONTAINER_IN  = 7;
     private int codeRetour;
     private String chargeUtile;
     
