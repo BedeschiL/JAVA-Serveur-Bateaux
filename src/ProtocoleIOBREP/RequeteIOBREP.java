@@ -309,18 +309,88 @@ public class RequeteIOBREP implements Requete, Serializable {
                     System.out.println("saveHandleContainer " + saveHandleContainer);
                 if(saveHandleContainer!=null)
                 {
-                     
+                    ResultSet rs2;
+                    rs2 = db2.executeRequeteSelection("SELECT * FROM PARC WHERE IDENTIFIANT like'"+saveHandleContainer+"'");
+                       List<String> row= new ArrayList();
+                        ResultSetMetaData rsmd = rs2.getMetaData();
+                        int columnsNumber = rsmd.getColumnCount();
+                        while(rs2.next()){
+                            String[] currentRow = new String[columnsNumber];
+                            for(int i = 1;i<=columnsNumber;i++){
+                                row.add(rs2.getString(i));
+                            }                      
+                        }
+                        System.out.println("END_CONTAINER_OUTApres  0");
+                        int i = 0;
+                        String arrayToString=null;
+                        System.out.println("END_CONTAINER_OUT Apres 1");
+                        while(i<row.size())
+                        {    
+                            if(i%8==0)
+                            {
+                                arrayToString =arrayToString + " : ";
+                            }
+                            else
+                            {
+                                arrayToString =arrayToString + " $ ";
+                            }
+                            arrayToString =arrayToString + row.get(i);
+                            i++;
+                        }
+                       
+                        System.out.println("END_CONTAINER_OUT arrayToString  " + arrayToString);
+                         String[] parserNull = arrayToString.split(":");
+                        
+                            String[] parserParc =null;       
+                         if(parserNull.length >1)
+                         {
+                          parserParc  = parserNull[1].split(" $ ");
+                      
+                        }
+                        int y=0;
+                         System.out.println("END_CONTAINER_OUT parc tab 00 " + parserParc[y]);
+                        while(y<parserParc.length)
+                        {
+                            System.out.println("END_CONTAINER_OUT parc tab  " + parserParc[y] + " y : "+ y );
+                            y++;
+                        }
+                        
+
+                        //MISE A JOUR DE MOUVEMENT + TRANSPORTEUR
+
                      db2.executeRequeteMiseAJour("UPDATE PARC SET IDENTIFIANT = null WHERE IDENTIFIANT like'"+saveHandleContainer+"'");
+                     
+                     //CREER UN MOUVEMENT
+                     
+                     //db2.executeRequeteMiseAJour("UPDATE MOUVEMENTS....);
                      rep = new ReponseIOBREP(ReponseIOBREP.END_CONTAINER_OUT,"Update confirmation de la mise a jours du parc" );
+                     saveHandleContainer=null;
                 }
                 else
                 {
                     rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"Update non faite, container non trouve" );
+                    saveHandleContainer=null;
                 } 
             }
             else if(req.getType() == RequeteIOBREP.BOAT_ARRIVED)
             {
-
+                System.out.println("HANDLE_CONTAINER_OUT");
+                String idBatDest = req.getChargeUtile();
+                String idBat=null;
+                String Dest=null;
+                String[] parser = idBatDest.split(":");
+                    if(parser.length >= 2) {
+                        idBat = parser[0];
+                        Dest = parser[1];
+                    }
+                if(idBat !=null && Dest !=null)
+                {
+                     db2.executeRequeteMiseAJour("INSERT INTO TRANSPORTEUR ( ");
+                }
+                else
+                {   
+                
+                }
             }   
             else if(req.getType() == RequeteIOBREP.HANDLE_CONTAINER_IN)
             {
