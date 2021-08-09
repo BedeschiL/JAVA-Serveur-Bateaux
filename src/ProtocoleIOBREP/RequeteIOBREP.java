@@ -33,6 +33,8 @@ import java.security.*;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -53,11 +55,18 @@ public class RequeteIOBREP implements Requete, Serializable {
     public static int BOAT_ARRIVED = 5;
     public static int HANDLE_CONTAINER_IN = 6;
     public static int END_CONTAINER_IN  = 7;
+     public static int GET_NEWS = 8;
+     public static int GET_STATE = 9;
     //FROM REPONSE   
     private int type;
     private String chargeUtile;
     private ObjectInputStream ois;  
+    //Sauvegarde de l'ID du container SORTANT de HANDLER CONTAINER OUT
     private static String saveHandleContainer=null;
+    
+       //Sauvegarde de l'ID du container ENTNRANT de HANDLER CONTAINER IN
+    private static String saveIncomingContainer=null;
+     private static String saveEmplacement=null;
     public RequeteIOBREP(int t, String chu) {
         type = t;
         chargeUtile = chu;
@@ -80,7 +89,9 @@ public class RequeteIOBREP implements Requete, Serializable {
         return new Runnable() {
             public void run() {
                 try {
+                     System.out.println("REQUETE IOBREP traiteRequeteLogin");
                     traiteRequeteLogin(s, cs);
+                     System.out.println("REQUETE IOBREP traiteRequeteLogin-out");
                 } catch (Exception ex) {
                     Logger.getLogger(RequeteIOBREP.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -166,6 +177,7 @@ public class RequeteIOBREP implements Requete, Serializable {
             /////////DEBUT DE LA GESTION DE GET CONTAINER
             else if(req.getType() == RequeteIOBREP.GET_CONTAINERS)
             {
+                System.out.println("--------------------------");
                 System.out.println("GET_CONTAINERS"); 
                 try
                 {
@@ -213,11 +225,12 @@ public class RequeteIOBREP implements Requete, Serializable {
                             }
                             else
                             {
-                                arrayToString =arrayToString + " $ ";
+                                arrayToString =arrayToString + " @ ";
                             }
                             arrayToString =arrayToString + row.get(i);
                             i++;
                         }
+                        
                         System.out.println("arrayToString");
                         System.out.println("arrayToString  " + arrayToString);
                         System.out.println("Apres 2");
@@ -236,6 +249,7 @@ public class RequeteIOBREP implements Requete, Serializable {
             }
             else if(req.getType() == RequeteIOBREP.HANDLE_CONTAINER_OUT )
             {
+                System.out.println("--------------------------");
                 System.out.println("HANDLE_CONTAINER_OUT");
                 try
                 {
@@ -257,7 +271,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                     }
                     else
                     {
-                        System.out.println("NO ORDER");
+                        System.out.println("RANDOM");
                         rs2 = db2.executeRequeteSelection("SELECT * FROM PARC WHERE IDENTIFIANT LIKE '"+cont+"'");
                     }
                         List<String> row= new ArrayList();
@@ -281,7 +295,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                             }
                             else
                             {
-                                arrayToString =arrayToString + " $ ";
+                                arrayToString =arrayToString + " @ ";
                             }
                             arrayToString =arrayToString + row.get(i);
                             i++;
@@ -291,7 +305,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                         if(arrayToString !=null)
                         {
                            System.out.println("Apres 2");
-                          rep = new ReponseIOBREP(ReponseIOBREP.HANDLE_CONTAINER_OUT,arrayToString + " $ le container  ù"+cont+"ù va etre deplace");
+                          rep = new ReponseIOBREP(ReponseIOBREP.HANDLE_CONTAINER_OUT,arrayToString + " @ le container  ù"+cont+"ù va etre deplace");
                           saveHandleContainer = cont;
                            System.out.println("Apres 3");
                         }
@@ -309,6 +323,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                     System.out.println("saveHandleContainer " + saveHandleContainer);
                 if(saveHandleContainer!=null)
                 {
+                    System.out.println("--------------------------");
                     ResultSet rs2;
                     rs2 = db2.executeRequeteSelection("SELECT * FROM PARC WHERE IDENTIFIANT like'"+saveHandleContainer+"'");
                        List<String> row= new ArrayList();
@@ -332,102 +347,242 @@ public class RequeteIOBREP implements Requete, Serializable {
                             }
                             else
                             {
-                                arrayToString =arrayToString + " $ ";
+                                arrayToString =arrayToString + "@";
                             }
                             arrayToString =arrayToString + row.get(i);
                             i++;
-                        }
-                       
+                        }              
                         System.out.println("END_CONTAINER_OUT arrayToString  " + arrayToString);
                          String[] parserNull = arrayToString.split(":");
                         
                             String[] parserParc =null;       
                          if(parserNull.length >1)
                          {
-                          parserParc  = parserNull[1].split(" $ ");
+                          parserParc  = parserNull[1].split("@");
                       
                         }
                         int y=0;
-                         System.out.println("END_CONTAINER_OUT parc tab 00 " + parserParc[y]);
-                        while(y<parserParc.length)
+                        while(y< parserParc.length)
                         {
-                            System.out.println("END_CONTAINER_OUT parc tab  " + parserParc[y] + " y : "+ y );
-                            y++;
+                                System.out.println("END_CONTAINER_OUT parc tab 00 " + parserParc[y]);
+                                y++;
                         }
-                        
-
-                        //MISE A JOUR DE MOUVEMENT + TRANSPORTEUR
-
-                     db2.executeRequeteMiseAJour("UPDATE PARC SET IDENTIFIANT = null WHERE IDENTIFIANT like'"+saveHandleContainer+"'");
+                        //A FAIRE NOM DU BATEAU MANQUANT
+                        Date date = new Date(); // This object contains the current date value
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy dd-mm-ss");
+                        String dat = formatter.format(date).toString();
                      
-                     //CREER UN MOUVEMENT
+                     db2.executeRequeteMiseAJour("INSERT INTO MOUVEMENTS VALUES('"+parserParc[1]+dat+"E_C_Out"+"','"+parserParc[1]+"',NULL,NULL,NULL,'"+parserParc[4]+"',"+parserParc[5]+",'"+dat+"','"+parserParc[6]+"')");
+                     //MISE A JOUR DE MOUVEMENT + TRANSPORTEUR
                      
-                     //db2.executeRequeteMiseAJour("UPDATE MOUVEMENTS....);
-                     rep = new ReponseIOBREP(ReponseIOBREP.END_CONTAINER_OUT,"Update confirmation de la mise a jours du parc" );
+                     //MISE A JOUR DU PARC SUPPRESION DES DONNEES DE L'EMPLACEMENT
+                     db2.executeRequeteMiseAJour("UPDATE PARC SET IDENTIFIANT = null, ETAT = 1, RESERVATION = null, ARRIVAL = null, POIDS = null, DESTINATION = null,TRANSPORT =null  WHERE IDENTIFIANT like'"+saveHandleContainer+"'");   
+                   
+                     rep = new ReponseIOBREP(ReponseIOBREP.END_CONTAINER_OUT,"Update confirmation de la mise a jours du parc et mouvement ok" );
                      saveHandleContainer=null;
                 }
                 else
                 {
-                    rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"Update non faite, container non trouve" );
+                    rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"Update non faite, container non trouve ! Pas de maj" );
                     saveHandleContainer=null;
                 } 
             }
             else if(req.getType() == RequeteIOBREP.BOAT_ARRIVED)
             {
+                System.out.println("--------------------------");
                 System.out.println("HANDLE_CONTAINER_OUT");
                 String idBatDest = req.getChargeUtile();
+                 System.out.println("HANDLE_CONTAINER_OUT idBatDest " + idBatDest);
                 String idBat=null;
-                String Dest=null;
+                String idSociete=null;
+                String capacite =null;
+                String carac =null;
+                String idCont=null;
+                String poids=null;
+                String dest=null;
                 String[] parser = idBatDest.split(":");
-                    if(parser.length >= 2) {
+                    if(parser.length >= 5) {
                         idBat = parser[0];
-                        Dest = parser[1];
+                        idSociete = parser[1];
+                        capacite = parser[2];
+                        
+                        poids = parser[3];
+                        idCont = parser[4];
+                        dest = parser[5];
+                        
                     }
-                if(idBat !=null && Dest !=null)
+                if(idBat !=null && idSociete !=null)
                 {
-                     db2.executeRequeteMiseAJour("INSERT INTO TRANSPORTEUR ( ");
+                    try
+                    {
+                           db2.executeRequeteMiseAJour("INSERT INTO TRANSPORTEUR VALUES('"+idBat+"','"+idSociete+"',"+capacite+",'Bateau')");
+                    }
+                    catch(SQLIntegrityConstraintViolationException e)
+                    {
+                                  System.out.println("Transporteur Deja contenu");
+                    }
+                     Date date = new Date(); // This object contains the current date value
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy dd-mm-ss");
+                        String dat = formatter.format(date).toString();
+                     db2.executeRequeteMiseAJour("INSERT INTO MOUVEMENTS VALUES('"+idBat+idCont+dat+"B-A"+"','"+idCont+"','"+idSociete+"',NULL,NULL,'"+dat+"',"+poids+",NULL,'"+dest+"')");
+                      rep = new ReponseIOBREP(ReponseIOBREP.BOAT_ARRIVED,"Insert dans transporteur ok et mouvement " );
                 }
                 else
                 {   
-                
+                 rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"Une erreur dans l'arrive du bateau s'est produite" );
                 }
             }   
             else if(req.getType() == RequeteIOBREP.HANDLE_CONTAINER_IN)
             {
-
+                System.out.println("--------------------------");
+                   String idCont = req.getChargeUtile();
+                   System.out.println("CONTAINER IN : ID " + idCont);
+                   //A FINIR RECUPERER PLUS D'INFO DU CONTENEUR
+                   saveIncomingContainer = idCont;
+                   ResultSet rs2;
+                   rs2 = db2.executeRequeteSelection("SELECT * FROM PARC WHERE ROWNUM = 1 AND ETAT =1");
+                     List<String> row= new ArrayList();
+                        ResultSetMetaData rsmd = rs2.getMetaData();
+                        int columnsNumber = rsmd.getColumnCount();
+                        while(rs2.next()){
+                          
+                            for(int i = 1;i<=columnsNumber;i++){
+                                row.add(rs2.getString(i));
+                            }                      
+                        }
+                        System.out.println("HANDLE_CONTAINER_IN  0");
+                        int i = 0;
+                        String arrayToString=null;
+                        System.out.println("HANDLE_CONTAINER_IN  1");
+                        while(i<row.size())
+                        {    
+                            if(i%8==0)
+                            {
+                                arrayToString =arrayToString + " : ";
+                            }
+                            else
+                            {
+                                arrayToString =arrayToString + "@";
+                            }
+                            arrayToString =arrayToString + row.get(i);
+                            i++;
+                        }
+                          if(arrayToString==null)
+                          {
+                                 rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"There is no free places to handle your container" );
+                          }
+                          else
+                          {
+                               rep = new ReponseIOBREP(ReponseIOBREP.HANDLE_CONTAINER_IN,"There is a free place ! at " + row.get(0));
+                               saveEmplacement = row.get(0);
+                                 System.out.println("HANDLE_CONTAINER_IN fin : free place at "+ row.get(0) + " et cont : " + saveIncomingContainer);
+                          }
+                
             }
             else if(req.getType() == RequeteIOBREP.END_CONTAINER_IN)
             {
-
+                 System.out.println("--------------------------");
+                        System.out.println("END_CONTAINER_IN cont " + saveIncomingContainer +" save emp " + saveEmplacement);
+                       
+                    if(saveIncomingContainer!=null)
+                    {
+                          Date date = new Date(); // This object contains the current date value
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy dd-mm-ss");
+                        String dat = formatter.format(date).toString();
+                         System.out.println("END CONTAINER_IN DATE AVEC TIRET " + dat);
+                        // A FINIR GET LES INFOS DU CONTAINEUR
+                          db2.executeRequeteMiseAJour("INSERT INTO MOUVEMENTS VALUES('"+saveIncomingContainer+dat+"E_C_IN"+"','"+saveIncomingContainer+"',NULL,NULL,NULL,'"+dat+"',NULL,NULL,NULL)");
+                         // A FAIRE : db2.executeRequeteMiseAJour("INSERT INTO TRANSPORTEUR VALUES('"+idBat+"','"+idSociete+"',"+capacite+",'"+carac+"')");
+                         db2.executeRequeteMiseAJour("UPDATE PARC SET IDENTIFIANT = '"+saveIncomingContainer+"', ETAT = 2, RESERVATION = null, ARRIVAL = '"+dat+"', POIDS = null, DESTINATION = null,TRANSPORT =null  WHERE COORDONNEE like'"+saveEmplacement+"'");   
+                        
+                            System.out.println("Container valide");
+                         rep = new ReponseIOBREP(ReponseIOBREP.END_CONTAINER_IN,"Valide pour emp " + saveEmplacement + " Containeur : "+saveIncomingContainer);
+                    }
+                    else
+                    {
+                           rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"pas de containeur recu ! Il en faut un pour valider" );
+                    }
             }
-            
+             else if(req.getType() == RequeteIOBREP.GET_NEWS)
+             {
+                 
+             }
+             else if(req.getType() == RequeteIOBREP.GET_STATE)
+             {
+                   try
+                {              
+                        ResultSet rs2;
+                        rs2 = db2.executeRequeteSelection("SELECT * FROM PARC WHERE ROWNUM <3 ORDER BY ARRIVAL;");           
+                        System.out.println("Apres rs2");
+                        List allRows = new ArrayList();
+                        List<String> row= new ArrayList();
+                        ResultSetMetaData rsmd = rs2.getMetaData();
+                        int columnsNumber = rsmd.getColumnCount();
+                        while(rs2.next()){
+                            String[] currentRow = new String[columnsNumber];
+                            for(int i = 1;i<=columnsNumber;i++){
+                                row.add(rs2.getString(i));
+                            }                      
+                        }
+                        System.out.println("Apres 0");
+                        int i = 0;
+                        String arrayToString=null;
+                        System.out.println("Apres 1");
+                        while(i<row.size())
+                        {    
+                            if(i%8==0)
+                            {
+                                arrayToString =arrayToString + " : ";
+                            }
+                            else
+                            {
+                                arrayToString =arrayToString + " @ ";
+                            }
+                            arrayToString =arrayToString + row.get(i);
+                            i++;
+                        }
+                        if(arrayToString==null)
+                        {
+                               rep = new ReponseIOBREP(ReponseIOBREP.UNKNOWN_TYPE,"Pas de containeur a visualise" );     
+                        }
+                        else
+                        {
+                            System.out.println("arrayToString");
+                            System.out.println("arrayToString  " + arrayToString);
+                            System.out.println("Apres 2");
+                            rep = new ReponseIOBREP(ReponseIOBREP.GET_CONTAINER,arrayToString );      
+                            System.out.println("Apres 3");
+                    
+                        }
+                } catch (Exception ex) {
+                    Logger.getLogger(RequeteIOBREP.class.getName()).log(Level.SEVERE, null, ex);
+                }
+             }
             try {
-                oos = new ObjectOutputStream(sock.getOutputStream());
+                if(oos==null)
+                {
+                     oos = new ObjectOutputStream(sock.getOutputStream());
+                }
+             
                 oos.writeObject(rep);
                 oos.flush();                
                 req = (RequeteIOBREP)ois.readObject();
+              
                 System.out.println("Requete lue par le serveur, instance de " + req.getClass().getName());
+                
             }
             catch(Exception e) {
-                System.err.println("Erreur ? [" + e.getMessage() + "]");
+          
+                System.err.println("0Erreur ? [" + e.getMessage() + "]");
                 break;
             }
         }      
         try {
             sock.close();
+           
+            
         } catch (IOException e) {
-            System.err.println("Erreur ? [" + e.getMessage() + "]");
+            System.err.println("1Erreur ? [" + e.getMessage() + "]");
         }     
     }   
-    private void traiteRequeteLoggedOut(Socket sock, ConsoleServeur cs) {
-        try {
-            ObjectOutputStream oos = new ObjectOutputStream(sock.getOutputStream());
-            oos.writeObject(new ReponseIOBREP(ReponseIOBREP.NOT_LOGGED_IN, null));
-            oos.flush();
-            sock.close();
-        }
-        catch(IOException e) {
-            System.err.println("Erreur ? [" + e.getMessage() + "]");
-        }
-    }
 }

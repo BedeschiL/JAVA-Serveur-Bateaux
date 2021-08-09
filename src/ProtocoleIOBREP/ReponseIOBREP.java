@@ -40,6 +40,8 @@ public class ReponseIOBREP implements Reponse, Serializable {
      public static int BOAT_ARRIVED = 5;
     public static int HANDLE_CONTAINER_IN = 6;
     public static int END_CONTAINER_IN  = 7;
+     public static int GET_NEWS = 8;
+     public static int GET_STATE = 9;
     private int codeRetour;
     private String chargeUtile;
     
