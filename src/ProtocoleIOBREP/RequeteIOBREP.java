@@ -23,7 +23,6 @@ import ProtocoleCHAMAP.RequeteCHAMAP;
 import beansForJdbc.BeanBDAccess;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import protocole.Requete;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -41,6 +40,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import protocole.ConsoleServeur;
+import protocole.Requete;
 
 /**
  *
@@ -219,7 +219,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                         System.out.println("Apres 1");
                         while(i<row.size())
                         {    
-                            if(i%8==0)
+                            if(i%columnsNumber==0)
                             {
                                 arrayToString =arrayToString + " : ";
                             }
@@ -264,7 +264,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                     System.out.println("cont" + cont);
                     System.out.println("order" + order);
                     ResultSet rs2;
-                    if(order.toUpperCase().equals("FIRST"))
+                    if(order !=null && order.toUpperCase().equals("FIRST"))
                     {
                          System.out.println("FIRST");
                         rs2 = db2.executeRequeteSelection("SELECT * FROM PARC WHERE IDENTIFIANT LIKE '"+cont+"' AND ARRIVAL = (SELECT MIN(ARRIVAL) FROM PARC)");
@@ -289,7 +289,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                         System.out.println("Apres 1");
                         while(i<row.size())
                         {    
-                            if(i%8==0)
+                            if(i%columnsNumber==0)
                             {
                                 arrayToString =arrayToString + " : ";
                             }
@@ -341,7 +341,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                         System.out.println("END_CONTAINER_OUT Apres 1");
                         while(i<row.size())
                         {    
-                            if(i%8==0)
+                            if(i%columnsNumber==0)
                             {
                                 arrayToString =arrayToString + " : ";
                             }
@@ -369,13 +369,15 @@ public class RequeteIOBREP implements Requete, Serializable {
                         }
                         //A FAIRE NOM DU BATEAU MANQUANT
                         Date date = new Date(); // This object contains the current date value
-                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy dd-mm-ss");
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy HH-mm-ss");
                         String dat = formatter.format(date).toString();
-                     
-                     db2.executeRequeteMiseAJour("INSERT INTO MOUVEMENTS VALUES('"+parserParc[1]+dat+"E_C_Out"+"','"+parserParc[1]+"',NULL,NULL,NULL,'"+parserParc[4]+"',"+parserParc[5]+",'"+dat+"','"+parserParc[6]+"')");
+                    String insert="INSERT INTO MOUVEMENTS VALUES('"+parserParc[1]+dat+"E_C_Out"+"','"+parserParc[1]+"',NULL,NULL,NULL,NULL,0,'"+dat+"',NULL)";
+                    System.out.println(insert);
+                     db2.executeRequeteMiseAJour(insert);
                      //MISE A JOUR DE MOUVEMENT + TRANSPORTEUR
                      
                      //MISE A JOUR DU PARC SUPPRESION DES DONNEES DE L'EMPLACEMENT
+                     //&&& A FAIRE &&&& //METTRE PLUS D'INFO DEPUIS ANDROID ! 
                      db2.executeRequeteMiseAJour("UPDATE PARC SET IDENTIFIANT = null, ETAT = 1, RESERVATION = null, ARRIVAL = null, POIDS = null, DESTINATION = null,TRANSPORT =null  WHERE IDENTIFIANT like'"+saveHandleContainer+"'");   
                    
                      rep = new ReponseIOBREP(ReponseIOBREP.END_CONTAINER_OUT,"Update confirmation de la mise a jours du parc et mouvement ok" );
@@ -422,7 +424,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                                   System.out.println("Transporteur Deja contenu");
                     }
                      Date date = new Date(); // This object contains the current date value
-                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy dd-mm-ss");
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy HH-mm-ss");
                         String dat = formatter.format(date).toString();
                      db2.executeRequeteMiseAJour("INSERT INTO MOUVEMENTS VALUES('"+idBat+idCont+dat+"B-A"+"','"+idCont+"','"+idSociete+"',NULL,NULL,'"+dat+"',"+poids+",NULL,'"+dest+"')");
                       rep = new ReponseIOBREP(ReponseIOBREP.BOAT_ARRIVED,"Insert dans transporteur ok et mouvement " );
@@ -456,7 +458,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                         System.out.println("HANDLE_CONTAINER_IN  1");
                         while(i<row.size())
                         {    
-                            if(i%8==0)
+                            if(i%columnsNumber==0)
                             {
                                 arrayToString =arrayToString + " : ";
                             }
@@ -487,7 +489,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                     if(saveIncomingContainer!=null)
                     {
                           Date date = new Date(); // This object contains the current date value
-                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy dd-mm-ss");
+                        SimpleDateFormat formatter = new SimpleDateFormat("dd/M/yyyy HH-mm-ss");
                         String dat = formatter.format(date).toString();
                          System.out.println("END CONTAINER_IN DATE AVEC TIRET " + dat);
                         // A FINIR GET LES INFOS DU CONTAINEUR
@@ -530,7 +532,7 @@ public class RequeteIOBREP implements Requete, Serializable {
                         System.out.println("Apres 1");
                         while(i<row.size())
                         {    
-                            if(i%8==0)
+                            if(i%columnsNumber==0)
                             {
                                 arrayToString =arrayToString + " : ";
                             }

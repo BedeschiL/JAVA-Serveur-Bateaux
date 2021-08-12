@@ -22,7 +22,6 @@ import ProtocoleCHAMAP.RequeteCHAMAP;
 import beansForJdbc.BeanBDAccess;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import protocole.Requete;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -34,6 +33,7 @@ import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import protocole.ConsoleServeur;
+import protocole.Requete;
 
 /**
  *

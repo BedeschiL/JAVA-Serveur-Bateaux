@@ -14,32 +14,49 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package serveur;
+package serveurSSL;
 
+import serveur.*;
 import ProtocoleBISAMAP.RequeteBISAMAP;
 import ProtocoleCHAMAP.RequeteCHAMAP;
 import ProtocoleIOBREP.RequeteIOBREP;
 import ProtocoleSAMOP.RequeteSAMOP;
 import ProtocoleTRAMAP.RequeteTRAMAP;
+import RequeteSSL.RequeteSSL;
 import protocole.ConsoleServeur;
 import java.io.*;
 import java.net.*;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManagerFactory;
 import protocole.Requete;
 
 /**
  *
  * @author hector
  */
-public class ThreadServeur extends Thread {
+public class ThreadServeurSSL extends Thread {
     
     private final int NB_THREADS = 3;
     
     private int port;
     private SourceTaches tachesAExecuter;
     private ConsoleServeur guiApplication;
-    private ServerSocket SSocket = null;
+    SSLServerSocket SslSSocket = null; 
+    SSLSocket SslSocket = null; 
 
-    public ThreadServeur(int port, SourceTaches tachesAExecuter, ConsoleServeur guiApplication) {
+    public ThreadServeurSSL(int port, SourceTaches tachesAExecuter, ConsoleServeur guiApplication) {
         this.port = port;
         this.tachesAExecuter = tachesAExecuter;
         this.guiApplication = guiApplication;
@@ -47,10 +64,28 @@ public class ThreadServeur extends Thread {
     
     public void run() {
         try {
-            SSocket = new ServerSocket(port);
+            KeyStore ServerKs = KeyStore.getInstance("JKS"); 
+           String FICHIER_KEYSTORE = "c:\\test\\test_keystore2.jks"; 
+           char[] PASSWD_KEYSTORE = "123456".toCharArray(); 
+           FileInputStream ServerFK = new FileInputStream (FICHIER_KEYSTORE); 
+           ServerKs.load(ServerFK, PASSWD_KEYSTORE); 
+           // 2. Contexte
+           SSLContext SslC = SSLContext.getInstance("SSLv3"); 
+           KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509"); 
+           char[] PASSWD_KEY = "123456".toCharArray(); 
+           kmf.init(ServerKs, PASSWD_KEY); 
+           TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509"); 
+           tmf.init(ServerKs); 
+           SslC.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null); 
+           // 3. Factory
+           SSLServerSocketFactory SslSFac= SslC.getServerSocketFactory(); 
+           // 4. Socket
+           SslSSocket = (SSLServerSocket) SslSFac.createServerSocket(port); 
         }
         catch (IOException e) {
             System.err.println("Erreur de port d'écoute ! ? [" + e + "]"); System.exit(1);
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException | CertificateException | KeyManagementException ex) {
+            Logger.getLogger(ThreadServeurSSL.class.getName()).log(Level.SEVERE, null, ex);
         }
         
 // Démarrage du pool de threads
@@ -65,8 +100,8 @@ public class ThreadServeur extends Thread {
         while(!isInterrupted()) {
             try {
                 System.out.println("************ Serveur en attente");
-                CSocket = SSocket.accept();
-                guiApplication.TraceEvenements(CSocket.getRemoteSocketAddress().toString() + "#accept#thread serveur");
+                SslSocket = (SSLSocket)SslSSocket.accept(); 
+                guiApplication.TraceEvenements(SslSocket.getRemoteSocketAddress().toString() + "#accept#thread serveur");
                   System.out.println("************ Serveur en accept");
             }
             catch(IOException e) {
@@ -74,11 +109,11 @@ public class ThreadServeur extends Thread {
             }
 
             ObjectInputStream ois = null;
-            Requete req = null;
+            RequeteSSL req = null;
             
             try {
-                ois = new ObjectInputStream(CSocket.getInputStream());
-                req = (Requete)ois.readObject();
+                ois = new ObjectInputStream(SslSocket.getInputStream());
+                req = (RequeteSSL)ois.readObject();
                 System.out.println("Requete lue par le serveur, instance de " + req.getClass().getName());
             }
             catch (ClassNotFoundException e) {
@@ -98,7 +133,7 @@ public class ThreadServeur extends Thread {
                 ((RequeteIOBREP)req).setOis(ois);
               if(req instanceof RequeteSAMOP)
                 ((RequeteSAMOP)req).setOis(ois);
-            Runnable travail = req.createRunnable(CSocket, guiApplication);
+            Runnable travail = req.createRunnable(SslSocket, guiApplication);
             if (travail != null) {
                 tachesAExecuter.recordTache(travail);
                 System.out.println("Travail mis dans la file");
